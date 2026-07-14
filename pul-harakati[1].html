@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pul harakati — Kirim-chiqim hisoboti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F4EF;
+    --panel:#FFFFFF;
+    --ink:#1F2A24;
+    --ink-soft:#5B6660;
+    --line:#DCD7CC;
+    --income:#2F6F4E;
+    --income-soft:#E7F0EA;
+    --expense:#B5482B;
+    --expense-soft:#F5E7E1;
+    --gold:#B08A2E;
+    --shadow: 0 1px 2px rgba(31,42,36,0.06), 0 8px 24px rgba(31,42,36,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    padding:32px 16px 80px;
+  }
+  .wrap{max-width:980px;margin:0 auto;}
+
+  .tape{
+    background:var(--panel);
+    border-radius:4px;
+    box-shadow:var(--shadow);
+    padding:28px 32px 24px;
+    position:relative;
+    margin-bottom:24px;
+  }
+  .tape::before, .tape::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; height:14px;
+    background:
+      radial-gradient(circle 7px at 14px 0, transparent 7px, var(--panel) 7px) repeat-x;
+    background-size:28px 14px;
+  }
+  .tape::before{ top:-13px; transform:rotate(180deg); }
+  .tape::after{ bottom:-13px; }
+
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    display:flex;
+    justify-content:space-between;
+    border-bottom:1px dashed var(--line);
+    padding-bottom:12px;
+    margin-bottom:16px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:28px;
+    margin:0 0 4px;
+  }
+  .balance-row{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    margin:14px 0 22px;
+  }
+  .balance-label{ font-size:13px; color:var(--ink-soft); }
+  .balance-value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:38px;
+    font-weight:600;
+    letter-spacing:-0.5px;
+  }
+  .balance-value.neg{ color:var(--expense); }
+  .balance-value.pos{ color:var(--income); }
+
+  .stat-strip{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .stat{
+    background:var(--panel);
+    padding:14px 18px;
+  }
+  .stat .k{ font-size:12px; color:var(--ink-soft); margin-bottom:4px; }
+  .stat .v{ font-family:'IBM Plex Mono',monospace; font-size:19px; font-weight:600; }
+  .stat.in .v{ color:var(--income); }
+  .stat.out .v{ color:var(--expense); }
+
+  .filters{
+    display:flex; gap:20px; flex-wrap:wrap; margin:18px 0 0; align-items:center;
+  }
+  .filter-group{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .filter-label{ font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.08em; margin-right:2px; }
+  .periods button, .branch-chip{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:500;
+    padding:7px 14px;
+    border-radius:20px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    color:var(--ink-soft);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .periods{ display:flex; gap:8px; flex-wrap:wrap; }
+  .periods button.active, .branch-chip.active{
+    background:var(--ink);
+    border-color:var(--ink);
+    color:var(--paper);
+  }
+
+  .grid{ display:grid; grid-template-columns:320px 1fr; gap:24px; align-items:start; }
+  @media (max-width:760px){ .grid{ grid-template-columns:1fr; } }
+
+  .card{
+    background:var(--panel);
+    border-radius:6px;
+    box-shadow:var(--shadow);
+    padding:22px;
+    margin-bottom:24px;
+  }
+  .card h2{
+    font-family:'Fraunces',serif;
+    font-size:17px;
+    font-weight:600;
+    margin:0 0 16px;
+  }
+  .card h2 small{
+    display:block; font-family:'Inter',sans-serif; font-weight:400; font-size:12px; color:var(--ink-soft); margin-top:3px;
+  }
+
+  .type-toggle{
+    display:flex;
+    border:1px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+    margin-bottom:16px;
+  }
+  .type-toggle button{
+    flex:1; padding:10px; border:none; background:var(--panel);
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13px;
+    cursor:pointer; color:var(--ink-soft);
+  }
+  .type-toggle button.sel.in{ background:var(--income-soft); color:var(--income); }
+  .type-toggle button.sel.out{ background:var(--expense-soft); color:var(--expense); }
+
+  label{
+    display:block; font-size:12px; color:var(--ink-soft); margin:12px 0 5px;
+  }
+  input, select, textarea{
+    width:100%;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:5px;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  input:focus, select:focus, textarea:focus{
+    outline:2px solid var(--gold);
+    outline-offset:1px;
+    background:var(--panel);
+  }
+  .amount-field{ position:relative; }
+  .amount-field input{ font-family:'IBM Plex Mono',monospace; font-size:17px; padding-right:50px; }
+  .amount-field span{
+    position:absolute; right:10px; top:50%; transform:translateY(-50%);
+    font-size:12px; color:var(--ink-soft);
+  }
+
+  .row2{ display:flex; gap:10px; }
+  .row2 > div{ flex:1; }
+
+  .add-btn{
+    width:100%; margin-top:18px;
+    padding:12px; border:none; border-radius:6px;
+    background:var(--ink); color:var(--paper);
+    font-family:'Inter',sans-serif; font-weight:600; font-size:14px;
+    cursor:pointer;
+  }
+  .add-btn:hover{ background:#0f1712; }
+  .add-btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .day-group{ margin-bottom:6px; }
+  .day-head{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    padding:14px 0 6px;
+    border-bottom:1px solid var(--line);
+    display:flex; justify-content:space-between;
+  }
+  .row{
+    display:flex; align-items:center; gap:12px;
+    padding:12px 0;
+    border-bottom:1px dashed var(--line);
+  }
+  .row:last-child{ border-bottom:none; }
+  .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .dot.in{ background:var(--income); }
+  .dot.out{ background:var(--expense); }
+  .row-main{ flex:1; min-width:0; }
+  .row-cat{ font-size:14px; font-weight:600; }
+  .row-branch{
+    display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.03em;
+    color:var(--gold); background:#F7EFDA; border-radius:3px; padding:1px 6px; margin-right:6px;
+  }
+  .row-note{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+  .row-amount{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:15px; font-weight:600; white-space:nowrap;
+  }
+  .row-amount.in{ color:var(--income); }
+  .row-amount.out{ color:var(--expense); }
+  .del-btn{
+    border:none; background:none; color:var(--ink-soft);
+    font-size:16px; cursor:pointer; padding:4px 6px; line-height:1;
+    opacity:.5; transition:opacity .15s;
+  }
+  .del-btn:hover{ opacity:1; color:var(--expense); }
+
+  .empty{
+    text-align:center; padding:48px 20px; color:var(--ink-soft); font-size:14px;
+  }
+  .empty .big{ font-family:'Fraunces',serif; font-size:20px; color:var(--ink); margin-bottom:6px; }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:var(--paper); font-size:13px;
+    padding:10px 18px; border-radius:20px; opacity:0; pointer-events:none;
+    transition:all .25s ease; font-family:'Inter',sans-serif;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* iiko card */
+  .iiko-status{
+    display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:14px;
+    padding:10px 12px; border-radius:6px; background:var(--paper); border:1px solid var(--line);
+  }
+  .iiko-status .dot2{ width:8px; height:8px; border-radius:50%; background:var(--ink-soft); flex-shrink:0; }
+  .iiko-status.ok .dot2{ background:var(--income); }
+  .iiko-status.err .dot2{ background:var(--expense); }
+  .iiko-row{ display:flex; gap:10px; align-items:flex-end; }
+  .iiko-row > div{ flex:1; }
+  .iiko-btn{
+    padding:9px 16px; border:none; border-radius:5px; background:var(--ink); color:var(--paper);
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13px; cursor:pointer; white-space:nowrap;
+  }
+  .iiko-btn:disabled{ opacity:.5; cursor:wait; }
+  .iiko-btn.secondary{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .points-list{ margin-top:14px; display:flex; flex-wrap:wrap; gap:6px; }
+  .point-chip{
+    font-size:12px; padding:5px 10px; border-radius:14px; background:var(--income-soft); color:var(--income);
+    border:1px solid transparent;
+  }
+  .hint{ font-size:12px; color:var(--ink-soft); margin-top:10px; line-height:1.5; }
+  .hint a{ color:var(--ink); }
+
+  /* orders & payment breakdown */
+  .full{ grid-column: 1 / -1; }
+  .oc-controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px; }
+  .oc-controls .field{ min-width:140px; }
+  .oc-controls label{ margin:0 0 5px; }
+  .refresh-note{ font-size:11px; color:var(--ink-soft); margin-left:auto; align-self:center; }
+
+  .pt-strip{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+  .pt-chip{
+    background:var(--paper); border:1px solid var(--line); border-radius:6px;
+    padding:10px 14px; min-width:130px;
+  }
+  .pt-chip .n{ font-size:12px; color:var(--ink-soft); }
+  .pt-chip .s{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:15px; margin-top:2px; }
+
+  .ord-table{ width:100%; border-collapse:collapse; font-size:13px; }
+  .ord-table th{
+    text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--ink-soft); padding:8px 10px; border-bottom:1px solid var(--line);
+  }
+  .ord-table td{ padding:9px 10px; border-bottom:1px dashed var(--line); }
+  .ord-table tr:last-child td{ border-bottom:none; }
+  .src-tag{
+    font-size:10.5px; font-weight:600; background:var(--income-soft); color:var(--income);
+    border-radius:3px; padding:1px 6px;
+  }
+  .table-wrap{ max-height:420px; overflow-y:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="tape">
+    <div class="eyebrow">
+      <span>Pul harakati</span>
+      <span id="today-tag"></span>
+    </div>
+    <h1>Kirim-chiqim hisoboti</h1>
+    <div class="balance-row">
+      <span class="balance-label">Balans <span id="balance-scope"></span></span>
+    </div>
+    <div class="balance-value" id="balance">0 so'm</div>
+
+    <div class="stat-strip">
+      <div class="stat in">
+        <div class="k">Kirim (tanlangan davr)</div>
+        <div class="v" id="stat-in">0 so'm</div>
+      </div>
+      <div class="stat out">
+        <div class="k">Chiqim (tanlangan davr)</div>
+        <div class="v" id="stat-out">0 so'm</div>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Davr</span>
+        <div class="periods" id="periods">
+          <button data-p="today" class="active">Bugun</button>
+          <button data-p="week">Shu hafta</button>
+          <button data-p="month">Shu oy</button>
+          <button data-p="all">Barchasi</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Filial</span>
+        <div class="periods" id="branch-filters"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>Yangi harakat</h2>
+        <div class="type-toggle">
+          <button id="btn-in" class="sel in">Kirim</button>
+          <button id="btn-out">Chiqim</button>
+        </div>
+
+        <label for="f-branch">Filial</label>
+        <select id="f-branch"></select>
+
+        <div class="row2">
+          <div>
+            <label for="f-date">Sana</label>
+            <input type="date" id="f-date">
+          </div>
+          <div>
+            <label for="f-cat">Turkum</label>
+            <select id="f-cat"></select>
+          </div>
+        </div>
+
+        <label for="f-amount">Summa</label>
+        <div class="amount-field">
+          <input type="number" id="f-amount" placeholder="0" min="0" step="1000">
+          <span>so'm</span>
+        </div>
+
+        <label for="f-note">Izoh (ixtiyoriy)</label>
+        <textarea id="f-note" rows="2" placeholder="masalan: Amir aka — mahsulot yetkazib berdi"></textarea>
+
+        <button class="add-btn" id="add-btn">Qo'shish</button>
+      </div>
+
+      <div class="card">
+        <h2>iiko integratsiyasi <small>Filiallarni iikodan avtomatik olish</small></h2>
+        <div class="iiko-status" id="iiko-status"><span class="dot2"></span><span id="iiko-status-text">Ulanmagan</span></div>
+
+        <label for="backend-url">Backend URL</label>
+        <input type="text" id="backend-url" placeholder="masalan: https://sizning-nom.onrender.com">
+
+        <label for="iiko-key">iikoCloud API kaliti (apiLogin)</label>
+        <input type="text" id="iiko-key" placeholder="masalan: 4f8a2c...-...-...">
+
+        <div class="iiko-row" style="margin-top:12px;">
+          <button class="iiko-btn" id="iiko-connect">Ulanish</button>
+          <button class="iiko-btn secondary" id="iiko-forget">Kalitni o'chirish</button>
+        </div>
+
+        <div class="points-list" id="iiko-points"></div>
+
+        <div class="hint">
+          Backend URL — o'zingiz joylashtirgan proksi server manzili (README'dagi yo'riqnomaga qarang). Kalitni <b>iikoWeb → Sozlamalar → Cloud API</b> bo'limidan olasiz. Ulangach, tashkilotingizga biriktirilgan nuqtalar (filiallar) ro'yxati shu yerga tortib olinadi va yuqoridagi "Filial" tanlovida paydo bo'ladi.
+          <br>Eslatma: hisob-kitoblarni (kirim/chiqim) iikodan <b>avtomatik tortib olish</b> uchun qaysi hisobot turidan (kassa/Z-otchyot yoki OLAP) foydalanish kerakligini aniqlashtirish kerak — buni keyingi qadamda birga sozlaymiz.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Harakatlar tarixi</h2>
+      <div id="list"></div>
+    </div>
+  </div>
+
+  <div class="card full">
+    <h2>iiko: To'lov turlari va buyurtmalar <small>Call-center va boshqa manbalardan tushgan buyurtmalar</small></h2>
+
+    <div class="oc-controls">
+      <div class="field">
+        <label for="oc-from">Sanadan</label>
+        <input type="date" id="oc-from">
+      </div>
+      <div class="field">
+        <label for="oc-to">Sanagacha</label>
+        <input type="date" id="oc-to">
+      </div>
+      <div class="field">
+        <label for="oc-source">Manba</label>
+        <select id="oc-source"><option value="all">Barchasi</option></select>
+      </div>
+      <button class="iiko-btn" id="oc-refresh">Yangilash</button>
+      <span class="refresh-note" id="oc-refresh-note"></span>
+    </div>
+
+    <div class="pt-strip" id="pt-strip"></div>
+
+    <div class="table-wrap">
+      <table class="ord-table">
+        <thead>
+          <tr>
+            <th>Sana</th><th>№</th><th>Mijoz</th><th>Telefon</th><th>Filial</th><th>Manba</th><th>To'lov</th><th style="text-align:right">Summa</th>
+          </tr>
+        </thead>
+        <tbody id="oc-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CAT_IN = ["Savdo tushumi","Xizmat haqi","Boshqa kirim"];
+const CAT_OUT = ["Mahsulot xarid","Ish haqi","Ijara","Kommunal to'lovlar","Transport","Soliq/to'lovlar","Boshqa xarajat"];
+const DEFAULT_BRANCHES = ["Toshkent","Buxoro"];
+
+let txns = [];
+let branches = [...DEFAULT_BRANCHES];
+let curType = "in";
+let curPeriod = "today";
+let curBranch = "all";
+let iikoKey = "";
+let backendUrl = "";
+
+const TXN_KEY = "pul-harakati:transactions";
+const BRANCH_KEY = "pul-harakati:branches";
+const IIKO_KEY = "pul-harakati:iiko-key";
+const BACKEND_KEY = "pul-harakati:backend-url";
+
+const $ = (id) => document.getElementById(id);
+
+function fmt(n){
+  return new Intl.NumberFormat('ru-RU').format(Math.round(n)) + " so'm";
+}
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function uzDate(d){
+  const dt = new Date(d+"T00:00:00");
+  return dt.toLocaleDateString('uz-UZ', {day:'2-digit', month:'long', year:'numeric'});
+}
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+/* ---------- Categories & branch selects ---------- */
+function fillCategories(){
+  const sel = $('f-cat');
+  sel.innerHTML = "";
+  const list = curType === "in" ? CAT_IN : CAT_OUT;
+  list.forEach(c=>{
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    sel.appendChild(o);
+  });
+}
+function fillBranchSelect(){
+  const sel = $('f-branch');
+  const prev = sel.value;
+  sel.innerHTML = "";
+  branches.forEach(b=>{
+    const o = document.createElement('option');
+    o.value = b; o.textContent = b;
+    sel.appendChild(o);
+  });
+  if(branches.includes(prev)) sel.value = prev;
+}
+function renderBranchFilters(){
+  const wrap = $('branch-filters');
+  wrap.innerHTML = "";
+  const allBtn = document.createElement('button');
+  allBtn.textContent = "Barcha filiallar";
+  allBtn.className = curBranch === 'all' ? 'active' : '';
+  allBtn.onclick = ()=>{ curBranch = 'all'; renderBranchFilters(); render(); };
+  wrap.appendChild(allBtn);
+  branches.forEach(b=>{
+    const btn = document.createElement('button');
+    btn.textContent = b;
+    btn.className = curBranch === b ? 'active' : '';
+    btn.onclick = ()=>{ curBranch = b; renderBranchFilters(); render(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function setType(t){
+  curType = t;
+  $('btn-in').classList.toggle('sel', t==='in');
+  $('btn-in').classList.toggle('in', t==='in');
+  $('btn-out').classList.toggle('sel', t==='out');
+  $('btn-out').classList.toggle('out', t==='out');
+  fillCategories();
+}
+
+/* ---------- Period logic ---------- */
+function periodBounds(p){
+  const now = new Date();
+  const start = new Date(now); start.setHours(0,0,0,0);
+  if(p==='today'){ return [start, new Date(start.getTime()+86400000)]; }
+  if(p==='week'){
+    const day = (start.getDay()+6)%7;
+    const wStart = new Date(start); wStart.setDate(start.getDate()-day);
+    return [wStart, new Date(wStart.getTime()+7*86400000)];
+  }
+  if(p==='month'){
+    const mStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const mEnd = new Date(now.getFullYear(), now.getMonth()+1, 1);
+    return [mStart, mEnd];
+  }
+  return [new Date(0), new Date(8640000000000000)];
+}
+
+function filtered(){
+  const [s,e] = periodBounds(curPeriod);
+  return txns.filter(t=>{
+    const d = new Date(t.date+"T00:00:00");
+    const inPeriod = d >= s && d < e;
+    const inBranch = curBranch === 'all' || t.branch === curBranch;
+    return inPeriod && inBranch;
+  });
+}
+function balanceScopeTxns(){
+  return txns.filter(t=> curBranch === 'all' || t.branch === curBranch);
+}
+
+/* ---------- Render ---------- */
+function render(){
+  const all = filtered();
+  const balanceAll = balanceScopeTxns().reduce((a,t)=> a + (t.type==='in'? t.amount : -t.amount), 0);
+  const inSum = all.filter(t=>t.type==='in').reduce((a,t)=>a+t.amount,0);
+  const outSum = all.filter(t=>t.type==='out').reduce((a,t)=>a+t.amount,0);
+
+  const balEl = $('balance');
+  balEl.textContent = fmt(balanceAll);
+  balEl.className = 'balance-value ' + (balanceAll < 0 ? 'neg' : 'pos');
+  $('balance-scope').textContent = curBranch === 'all' ? '' : '— ' + curBranch;
+  $('stat-in').textContent = fmt(inSum);
+  $('stat-out').textContent = fmt(outSum);
+
+  const list = $('list');
+  if(all.length === 0){
+    list.innerHTML = `<div class="empty"><div class="big">Bu bo'yicha harakat yo'q</div>Yangi kirim yoki chiqimni chap tarafdan qo'shing.</div>`;
+    return;
+  }
+
+  const byDay = {};
+  all.slice().sort((a,b)=> (a.date < b.date ? 1 : -1) || (b.created - a.created))
+     .forEach(t=>{ (byDay[t.date] = byDay[t.date] || []).push(t); });
+
+  list.innerHTML = Object.keys(byDay).sort().reverse().map(date=>{
+    const items = byDay[date];
+    const dayNet = items.reduce((a,t)=> a + (t.type==='in'? t.amount : -t.amount), 0);
+    const rows = items.map(t=>`
+      <div class="row">
+        <span class="dot ${t.type}"></span>
+        <div class="row-main">
+          <div class="row-cat">${curBranch==='all' && t.branch ? `<span class="row-branch">${escapeHtml(t.branch)}</span>` : ''}${escapeHtml(t.category)}</div>
+          ${t.note ? `<div class="row-note">${escapeHtml(t.note)}</div>` : ''}
+        </div>
+        <div class="row-amount ${t.type}">${t.type==='in'?'+':'−'}${fmt(t.amount)}</div>
+        <button class="del-btn" onclick="removeTxn('${t.id}')" title="O'chirish">✕</button>
+      </div>
+    `).join('');
+    return `
+      <div class="day-group">
+        <div class="day-head"><span>${uzDate(date)}</span><span>${dayNet>=0?'+':'−'}${fmt(Math.abs(dayNet))}</span></div>
+        ${rows}
+      </div>
+    `;
+  }).join('');
+}
+
+/* ---------- Storage ---------- */
+async function loadAll(){
+  try{
+    const res = await window.storage.get(TXN_KEY, false);
+    txns = res ? JSON.parse(res.value) : [];
+  }catch(e){ txns = []; }
+
+  try{
+    const res = await window.storage.get(BRANCH_KEY, false);
+    branches = res ? JSON.parse(res.value) : [...DEFAULT_BRANCHES];
+  }catch(e){ branches = [...DEFAULT_BRANCHES]; }
+
+  try{
+    const res = await window.storage.get(IIKO_KEY, false);
+    iikoKey = res ? JSON.parse(res.value) : "";
+    if(iikoKey){ $('iiko-key').value = iikoKey; }
+  }catch(e){ iikoKey = ""; }
+
+  try{
+    const res = await window.storage.get(BACKEND_KEY, false);
+    backendUrl = res ? JSON.parse(res.value) : "";
+    if(backendUrl){ $('backend-url').value = backendUrl; }
+  }catch(e){ backendUrl = ""; }
+
+  fillBranchSelect();
+  renderBranchFilters();
+  render();
+  if(backendUrl && iikoKey){ fetchOrders(); }
+}
+async function saveTxns(){
+  try{ await window.storage.set(TXN_KEY, JSON.stringify(txns), false); }
+  catch(e){ showToast("Saqlashda xatolik yuz berdi"); }
+}
+async function saveBranches(){
+  try{ await window.storage.set(BRANCH_KEY, JSON.stringify(branches), false); }
+  catch(e){ showToast("Filiallarni saqlashda xatolik"); }
+}
+async function saveIikoKey(){
+  try{ await window.storage.set(IIKO_KEY, JSON.stringify(iikoKey), false); }
+  catch(e){}
+}
+async function saveBackendUrl(){
+  try{ await window.storage.set(BACKEND_KEY, JSON.stringify(backendUrl), false); }
+  catch(e){}
+}
+
+/* ---------- Transactions ---------- */
+window.removeTxn = function(id){
+  txns = txns.filter(t=>t.id !== id);
+  saveTxns();
+  render();
+};
+
+$('btn-in').addEventListener('click', ()=> setType('in'));
+$('btn-out').addEventListener('click', ()=> setType('out'));
+
+document.querySelectorAll('#periods button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#periods button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    curPeriod = btn.dataset.p;
+    render();
+  });
+});
+
+$('add-btn').addEventListener('click', async ()=>{
+  const date = $('f-date').value || todayStr();
+  const category = $('f-cat').value;
+  const branch = $('f-branch').value;
+  const amount = parseFloat($('f-amount').value);
+  const note = $('f-note').value.trim();
+
+  if(!amount || amount <= 0){
+    showToast("Summani kiriting");
+    $('f-amount').focus();
+    return;
+  }
+
+  txns.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    type: curType, date, category, branch, amount, note,
+    created: Date.now()
+  });
+
+  await saveTxns();
+  $('f-amount').value = "";
+  $('f-note').value = "";
+  showToast(curType==='in' ? "Kirim qo'shildi" : "Chiqim qo'shildi");
+  render();
+});
+
+/* ---------- iiko integration ---------- */
+function setIikoStatus(state, text){
+  const el = $('iiko-status');
+  el.className = 'iiko-status' + (state ? ' ' + state : '');
+  $('iiko-status-text').textContent = text;
+}
+
+async function iikoConnect(){
+  const url = $('backend-url').value.trim().replace(/\/+$/, '');
+  const key = $('iiko-key').value.trim();
+  if(!url){ showToast("Backend URL manzilini kiriting"); return; }
+  if(!key){ showToast("API kalitni kiriting"); return; }
+  backendUrl = url; iikoKey = key;
+  await saveBackendUrl();
+  await saveIikoKey();
+
+  const btn = $('iiko-connect');
+  btn.disabled = true;
+  setIikoStatus('', "Ulanmoqda...");
+
+  try{
+    const res = await fetch(`${backendUrl}/api/connect`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({apiLogin: key})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server xatosi (status ${res.status})`);
+
+    const orgs = data.organizations || [];
+    let points = (data.points || []).map(p=>p.name);
+    if(points.length === 0){ points = orgs.map(o=>o.name); }
+    if(points.length === 0) throw new Error('Bu kalitga biriktirilgan tashkilot yoki nuqta topilmadi');
+
+    points.forEach(p=>{ if(!branches.includes(p)) branches.push(p); });
+    await saveBranches();
+    fillBranchSelect();
+    renderBranchFilters();
+
+    $('iiko-points').innerHTML = points.map(p=>`<span class="point-chip">${escapeHtml(p)}</span>`).join('');
+    setIikoStatus('ok', `Ulandi — ${points.length} ta nuqta topildi`);
+    showToast("iiko bilan bog'landi");
+    fetchOrders();
+  }catch(err){
+    let msg = err.message || 'Ulanishda xatolik';
+    if(msg === 'Failed to fetch'){ msg = "Backend'ga yetib bo'lmadi. URL to'g'riligini va server ishlab turganini tekshiring."; }
+    setIikoStatus('err', msg);
+    showToast("Ulanmadi");
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+$('iiko-connect').addEventListener('click', iikoConnect);
+$('iiko-forget').addEventListener('click', async ()=>{
+  iikoKey = "";
+  $('iiko-key').value = "";
+  await saveIikoKey();
+  $('iiko-points').innerHTML = "";
+  setIikoStatus('', 'Ulanmagan');
+  showToast("Kalit o'chirildi");
+});
+
+/* ---------- init ---------- */
+$('f-date').value = todayStr();
+$('today-tag').textContent = new Date().toLocaleDateString('uz-UZ', {day:'2-digit', month:'long', year:'numeric'});
+fillCategories();
+loadAll();
+
+/* ---------- Orders & payment types (iiko) ---------- */
+let ocTimer = null;
+let lastOrders = [];
+
+function ocSetDefaults(){
+  $('oc-from').value = todayStr();
+  $('oc-to').value = todayStr();
+}
+ocSetDefaults();
+
+async function fetchOrders(){
+  if(!backendUrl || !iikoKey){
+    $('oc-refresh-note').textContent = "Avval yuqorida iiko bilan ulaning";
+    return;
+  }
+  const dateFrom = $('oc-from').value || todayStr();
+  const dateTo = $('oc-to').value || todayStr();
+  $('oc-refresh-note').textContent = "Yuklanmoqda...";
+
+  try{
+    const res = await fetch(`${backendUrl}/api/orders`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({apiLogin: iikoKey, dateFrom, dateTo})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server xatosi (${res.status})`);
+
+    lastOrders = data.orders || [];
+    const sources = data.sources || [];
+    const paymentTotals = data.paymentTotals || [];
+
+    const srcSel = $('oc-source');
+    const prevSrc = srcSel.value;
+    srcSel.innerHTML = '<option value="all">Barchasi</option>' + sources.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    if([...srcSel.options].some(o=>o.value===prevSrc)) srcSel.value = prevSrc;
+
+    renderPaymentTotals(paymentTotals);
+    renderOrders();
+
+    const now = new Date();
+    $('oc-refresh-note').textContent = `Yangilandi: ${now.toLocaleTimeString('uz-UZ')}`;
+  }catch(err){
+    let msg = err.message || 'Xatolik';
+    if(msg === 'Failed to fetch'){ msg = "Backend'ga ulanib bo'lmadi"; }
+    $('oc-refresh-note').textContent = msg;
+  }
+}
+
+function renderPaymentTotals(totals){
+  const wrap = $('pt-strip');
+  if(totals.length === 0){
+    wrap.innerHTML = `<span class="refresh-note">Bu davrda to'lov ma'lumoti yo'q</span>`;
+    return;
+  }
+  wrap.innerHTML = totals.map(t=>`
+    <div class="pt-chip">
+      <div class="n">${escapeHtml(t.name)}</div>
+      <div class="s">${fmt(t.sum)}</div>
+    </div>
+  `).join('');
+}
+
+function renderOrders(){
+  const src = $('oc-source').value;
+  const filtered = src === 'all' ? lastOrders : lastOrders.filter(o=>o.source === src);
+  const tbody = $('oc-tbody');
+
+  if(filtered.length === 0){
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--ink-soft);padding:24px;">Buyurtmalar topilmadi</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(o=>{
+    const payStr = (o.payments||[]).map(p=>p.name).join(', ') || '—';
+    const dateStr = o.date ? new Date(o.date).toLocaleString('uz-UZ') : '—';
+    return `
+      <tr>
+        <td>${dateStr}</td>
+        <td>${escapeHtml(o.number || '')}</td>
+        <td>${escapeHtml(o.customerName || '—')}</td>
+        <td>${escapeHtml(o.phone || '—')}</td>
+        <td>${escapeHtml(o.branch || '—')}</td>
+        <td><span class="src-tag">${escapeHtml(o.source || '—')}</span></td>
+        <td>${escapeHtml(payStr)}</td>
+        <td style="text-align:right;font-family:'IBM Plex Mono',monospace;">${fmt(o.sum||0)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+$('oc-refresh').addEventListener('click', fetchOrders);
+$('oc-source').addEventListener('change', renderOrders);
+$('oc-from').addEventListener('change', fetchOrders);
+$('oc-to').addEventListener('change', fetchOrders);
+
+function startAutoRefresh(){
+  if(ocTimer) clearInterval(ocTimer);
+  ocTimer = setInterval(fetchOrders, 5 * 60 * 1000); // har 5 daqiqada
+}
+startAutoRefresh();
+</script>
+</body>
+</html>
