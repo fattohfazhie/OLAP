@@ -192,13 +192,13 @@ app.post('/api/orders', async (req, res) => {
 });
 
 // iikoCloud API v2 orqali token olish.
-// Bu API kalit turi v1'ni qo'llab-quvvatlamaydi, shuning uchun v2 ishlatiladi.
-// v2 endpoint "apiKey" VA "clientSecret" ikkalasini ham talab qiladi.
+// Developer Portal (Портал разработчика) tizimida yaratilgan kalitlar uchun
+// v2 endpoint "appId" VA "clientSecret" ikkalasini birga talab qiladi.
 async function getToken(apiLogin, clientSecret) {
   const tokenRes = await fetch(`https://api-ru.iiko.services/api/v2/access_token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ apiKey: apiLogin, clientSecret })
+    body: JSON.stringify({ appId: apiLogin, clientSecret })
   });
   if (!tokenRes.ok) {
     const t = await tokenRes.text();
