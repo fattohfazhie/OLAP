@@ -14,14 +14,17 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 // tashkilotlar va nuqtalar (filiallar) ro'yxatini qaytaradi.
 // Eslatma: apiLogin serverda saqlanmaydi, faqat shu so'rov davomida ishlatiladi.
 app.post('/api/connect', async (req, res) => {
-  const { apiLogin } = req.body || {};
+  const { apiLogin, clientSecret } = req.body || {};
   if (!apiLogin) {
     return res.status(400).json({ error: "apiLogin talab qilinadi" });
+  }
+  if (!clientSecret) {
+    return res.status(400).json({ error: "clientSecret talab qilinadi" });
   }
 
   try {
     // 1) Token olish
-    const token = await getToken(apiLogin);
+    const token = await getToken(apiLogin, clientSecret);
 
     // 2) Tashkilotlar ro'yxati
     const orgRes = await fetch(`${IIKO_BASE}/organizations`, {
@@ -64,11 +67,12 @@ app.post('/api/connect', async (req, res) => {
 
 // To'lov turlari ro'yxati
 app.post('/api/payment-types', async (req, res) => {
-  const { apiLogin } = req.body || {};
+  const { apiLogin, clientSecret } = req.body || {};
   if (!apiLogin) return res.status(400).json({ error: "apiLogin talab qilinadi" });
+  if (!clientSecret) return res.status(400).json({ error: "clientSecret talab qilinadi" });
 
   try {
-    const token = await getToken(apiLogin);
+    const token = await getToken(apiLogin, clientSecret);
     const orgIds = await getOrgIds(token);
 
     const ptRes = await fetch(`${IIKO_BASE}/payment_types`, {
@@ -89,12 +93,13 @@ app.post('/api/payment-types', async (req, res) => {
 
 // Buyurtmalar ro'yxati (berilgan sana oralig'i uchun) + to'lov turi va manba bo'yicha yig'indilar
 app.post('/api/orders', async (req, res) => {
-  const { apiLogin, dateFrom, dateTo } = req.body || {};
+  const { apiLogin, clientSecret, dateFrom, dateTo } = req.body || {};
   if (!apiLogin) return res.status(400).json({ error: "apiLogin talab qilinadi" });
+  if (!clientSecret) return res.status(400).json({ error: "clientSecret talab qilinadi" });
   if (!dateFrom || !dateTo) return res.status(400).json({ error: "dateFrom va dateTo talab qilinadi" });
 
   try {
-    const token = await getToken(apiLogin);
+    const token = await getToken(apiLogin, clientSecret);
 
     // Tashkilotlar + filial nomlari uchun terminal guruhlari
     const orgRes = await fetch(`${IIKO_BASE}/organizations`, {
@@ -188,12 +193,12 @@ app.post('/api/orders', async (req, res) => {
 
 // iikoCloud API v2 orqali token olish.
 // Bu API kalit turi v1'ni qo'llab-quvvatlamaydi, shuning uchun v2 ishlatiladi.
-// v2 endpoint "apiKey" maydonini kutadi (apiLogin qiymatini shu nom bilan yuboramiz).
-async function getToken(apiLogin) {
+// v2 endpoint "apiKey" VA "clientSecret" ikkalasini ham talab qiladi.
+async function getToken(apiLogin, clientSecret) {
   const tokenRes = await fetch(`https://api-ru.iiko.services/api/v2/access_token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ apiKey: apiLogin })
+    body: JSON.stringify({ apiKey: apiLogin, clientSecret })
   });
   if (!tokenRes.ok) {
     const t = await tokenRes.text();
