@@ -21,7 +21,7 @@ app.post('/api/connect', async (req, res) => {
 
   try {
     // 1) Token olish
-    const tokenRes = await fetch(`${IIKO_BASE}/access_token`, {
+    const tokenRes = await fetch(`https://api-ru.iiko.services/api/v2/access_token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ apiLogin })
@@ -196,7 +196,7 @@ app.post('/api/orders', async (req, res) => {
 });
 
 async function getToken(apiLogin) {
-  const tokenRes = await fetch(`${IIKO_BASE}/access_token`, {
+  const tokenRes = await fetch(`https://api-ru.iiko.services/api/v2/access_token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apiLogin })
